@@ -1,0 +1,677 @@
+---
+title: ""
+author: "Team Inferno"
+date: 
+output:
+  html_document: default
+  pdf_document: default
+---
+## **Introduction:** 
+
+The WNBA (Woman's National Basketball Association) is a professional basketball league in the United States. The league currently consists of twelve teams. After being founded on April 22, 1996, as the women's counterpart to the National Basketball Association, the league began play in 1997. The Woman's National Basketball Association is the subject of the data set we chose. This data set was chosen because it is robust, with a big amount of data from a wide range of games, allowing for a lot of investigation, and it is from a league that we don't watch very often. 
+
+The project's goal is broken down into the following components: The winning and losing data of WNBA players, the efficiency of players, and the points scored by different teams. It also considers the number of wins or losses a team has based on player statistics. As a part of this project we are trying to answer several business questions using predictive methods. Below are the set of business questions which we have identified and worked upon.  
+
+**Business Questions:**
+
+```{r echo=FALSE,fig.align='center',fig.cap="Table 1:Business Questions",out.width='100%'}
+knitr::include_graphics('C:/Users/monic/Desktop/BQ.png')
+```
+---
+
+## **Data Cleaning**
+
+```{r}
+##setting the working directory
+#setwd("C:/Users/monic/Desktop/")
+
+##Importing the data set
+WNBA<- read.csv("/Users/monic/Desktop/WNBA.csv",header = TRUE)
+attach(WNBA)
+
+##finding number of missing values for each column
+data.frame("column_names"=c(colnames(WNBA)),
+           "missing_value_counts"=sapply(WNBA,function(x)sum(is.na(x))),
+           row.names=NULL)
+
+##removing columns X and X.1
+WNBA = subset(WNBA, select=c(-X, -X.1))
+```
+
+**Data Cleaning**: We have set a working directory following which we have imported the data set into R. We have checked for null values in all columns and removed any unnecessary columns for our analysis.
+
+## **Descriptive Statistics**
+
+```{r}
+head(WNBA)
+##install.packages("stargazer")
+library(stargazer)
+stargazer(WNBA,type = "text", title = "Table 1.1: Summary Statistics", out = "table1.txt")
+str(WNBA)
+library(psych)
+describe(WNBA)
+```
+
+**Descriptive Statistics**: Summary function is used to check the Min,1st Quartile,Median,Mean,3rd Quartile and Max values of all variables in the data set. Structure function is used to check the data type of each variable and the number of variables in data set.
+
+
+## **Exploratory Data Analysis**
+
+There are 4033 records in the data set, with 26 variables consisting of 2014 WNBA player statistics. It displays the stats of players in various games against the teams against which they competed. As part of the early study, we're attempting to comprehend the data set and identify patterns and trends for various players and teams. We did data cleaning, which included handling all null values and removing any unneeded columns from the data collection. We used descriptive and exploratory data analysis to gain a better understanding of the data set, which would assist us in answering the business problem.
+
+```{r}
+#Relationship between Minutes Played and Points Scored
+max(WNBA$minutes)
+min(WNBA$minutes)
+mean(WNBA$minutes)
+
+
+plot(WNBA$minutes,WNBA$points,
+main="Relationship between Minutes Played and Points Scored",
+sub = "Figure 1.1: Relationship between Minutes Played and Points Scored",
+ylab = "Points Scored", xlab = "Minutes Played", col='light blue',pch=20)
+```
+
+<BR>
+This scatter plot shows us the relationship between Minutes played by a player and Points scored by the player. It is observed that with increase in minutes played, a player usually tends to score more points. However, there are exceptions where a player has played for 50 mins and yet scored only 15 mins while another player who played only for 25 mins scored 35 points.
+
+
+```{r}
+##Histogram for each variable
+
+##histograms for different numeric variables to understand the frequencies
+par(mfrow=c(3,2))
+hist(WNBA$efficiency, xlab = "Efficiency of Player", main = "")
+hist(WNBA$fgatt, col=2, xlab = "Field goals attempted", main = "")
+hist(WNBA$fgmade, col=3, breaks=10, xlab = "Field goals made", main = "")
+hist(WNBA$minutes, breaks=100, xlab = "Minutes played", main = "")
+hist(WNBA$points, col=3, breaks=10, xlab = "Points made by player", main = "")
+hist(WNBA$team_pts, breaks=100, xlab = "Team points", main = "")
+mtext("Figure 1.2: Frequency of variables",
+side = 3,
+line = -2,
+outer = TRUE)
+```
+This figure gives us histograms of several variables. It helps us understand the frequency of different variables in one chart. It helps us understand player trends of efficiency, field goals attempted, field goals made, minutes played, points scored and total team points.
+
+```{r}
+#Boxplot for average points by teams
+library(dplyr)
+library(ggplot2)
+WNBA %>% ggplot(aes(team,team_pts))+
+geom_boxplot(fill='light blue', color='navy')+
+labs(x="Team", y="Average Points") +
+ggtitle("Average Points by Team")+labs(caption="Figure 1.3: Boxplot of Average Points per Team")+
+  theme(plot.caption.position = "plot",plot.caption = element_text(hjust = 0.5))+
+  theme(plot.title=element_text(hjust=0.5))
+```
+This boxplot is a representation of all the teams present in the dataset, and the average points scored by each team. It shows the presence of outliers in the data.
+It is obseved that team PHO has the highest median score, while team SEA have the least median score. The interquartile range of CON is highest and IND is lowest which implies that IND may have been most consistent.
+
+**Horizontal Bar graph of Top 10 Players with highest points**
+```{r}
+top_10_players <- WNBA %>%
+group_by(Player) %>%
+summarise(total_points = sum(points)) %>%
+arrange(desc(total_points)) %>%
+top_n(10)
+
+ggplot(top_10_players, aes(x=reorder(Player, total_points), y=total_points)) +
+geom_col(fill = "lightblue") +
+labs(title="Top 10 Players with highest points",
+x="Player",
+y="Total Points") +
+theme_minimal() +
+coord_flip() +labs(caption="Figure 1.4: Top 10 players with highest points")+
+theme(plot.caption.position = "plot",plot.caption = element_text(hjust = 0.5))+
+theme(plot.title=element_text(hjust=0.5))+
+scale_y_continuous(breaks=seq(0, max(top_10_players$total_points), 200))
+```
+
+This horizontal bar graph displays the top 10 players with highest points achieved. We can see that Maya Moore belonging to MIN team has obtained the highest point among all players with total points of 812 scored in different games. She is followed by Skylar Diggins of TUL team with total points of 683 and Tina Charles of NYL team with total points of 590.
+
+```{r}
+##Average points for each player
+a <-WNBA %>%
+group_by(Player) %>%
+summarise(points = mean(points))
+
+
+##Categorizing points
+a <- a %>%
+mutate(Points_labels = case_when(
+points >= 0 & points <= 3 ~ "below average",
+points >3 & points <= 6 ~ "average points",
+points > 6 & points <= 15 ~ "above average",
+points > 15 ~ "well above average"
+))
+
+
+##Defining point levels
+points_levels <- c( "below average", "average points", "above average", "well above average")
+
+
+##Number of players in each category of points
+a <-a %>%
+group_by(Points_labels) %>%
+summarize(Freq = n()) %>%
+arrange(factor(Points_labels,
+levels = points_levels))
+
+
+##Barplot for Category of Players by Points
+ggplot(a, aes(x=Points_labels, y=Freq)) +
+geom_col(fill = "lightcoral") +
+theme_minimal() +
+labs(x = "Points Labels",
+y = "Total Players",
+title = "Category of Players by Points") +
+theme(plot.title=element_text(hjust=0.5))+
+scale_y_continuous(breaks=seq(0, 60, 10))+labs(caption="Figure 1.5: Category of Players by Points")+
+theme(plot.caption.position = "plot",plot.caption = element_text(hjust = 0.5))
+```
+
+
+This bar graph shows the total number of players in each category of points. The points were categorized into below average (0-3 points), average (>3-6 points), above average (>6-15 points) and well above average (>15 points) and players in each category was calculated. It was found that the greatest number of players were in the above average category (>6-15 points) whereas the least number of players were in the well above average category (>15 points).
+
+**Correlation Plot**
+
+```{r}
+corTable <- cor(WNBA[sapply(WNBA, is.numeric)])
+
+##install.packages("corrplot")
+library(corrplot)
+library(RColorBrewer)
+corrplot(corTable,tl.cex = 0.5, type="upper",number.cex = 0.5,col=brewer.pal(n=8, name="RdYlBu"))
+```
+<CENTER>
+Figure 1.6: Correlation plot for WNBA.</CENTER>
+
+<BR>
+This correlation chart shows the relationship between different variables, depicted how strongly they are interconnected and whether it is positively or negatively related. The correlation coefficient value ranges between -1 to 1, where -1 depicts a perfect negative correlation, 1 depicts a perfect positive correlation and 0 depicts no linear relationship. The correlation coefficients correspond to the point size and color intensity. The larger the point and darker the color, higher is the correlation coefficient. The color varies from blue to ref, where blue represents positive correlation and red represents negative correlation. 
+
+From this chart, we can understand that made1 and att1 have the highest positive correlation between each other. Similarly, player_id and minutes have the highest negative correlation. Significant positive correlations exist between fgmade and points, defrb and totrb, fgmade and fgatt, points and efficiency, fgatt and points, and fgmade and efficiency. Also, significant negative correlations exist between player_id and fgatt, player_id and points, player_id and fgmade and player_id and efficiency.
+
+<BR>
+**Business Question 1: What are the set of factors that determine the efficiency of the player and which of these factors have similar impact?**
+
+**Motivation: **
+
+In basketball, it is common to use specialist ratings/efficiency scores to evaluate a player's performance. The experts, on the other hand, do not reveal the criteria they employ to provide a score. We attempt to find the most critical aspects of a player's performance that influence their overall efficiency. This is where we locate the intrinsic knowledge that professionals utilize to assign player ratings.
+Basketball players with a specific set of skills/attributes are more likely than others to have a better efficiency rating. Understanding these characteristics will aid in deciding whether to buy a player or not.
+
+**Research and Development:**
+
+We will be using PCA, k-means clustering and Multiple Regression to answer the Business Questions. 
+
+**Justification:**
+
+**PCA and K-means Clustering: **
+PCA in conjunction with k-means is a powerful method for visualizing high dimensional data. PCA is a statistical process that converts a set of observations of possibly correlated variables into a set of values of linearly uncorrelated variables termed principal components via an orthogonal transformation. 
+Principal Components are the data’s fundamental structure. They’re the directions with the most variation, the ones where the data is spread out the most. This means we’re looking for the straight line that spreads the data out the most when projected along it. The straight line that indicates the most significant variance in the data is the first principal component. 
+
+The K-means clustering algorithm computes centroids and repeats until the optimal centroid is found. It is presumptively known how many clusters there are. It is also known as the flat clustering algorithm. The number of clusters found from data by the method is denoted by the letter ‘K’ in K-means.
+In this method, data points are assigned to clusters in such a way that the sum of the squared distances between the data points and the centroid is as small as possible. It is essential to note that reduced diversity within clusters leads to more identical data points within the same cluster.
+
+We will be using PCA and k-means clustering to answer the question: Which of factors are similar/ have similar impact on the efficiency?
+
+To answer this question, we need to understand how a large number of variables are correlated and how each variable impacts the predictor variable(efficiency). The PCA technique is especially beneficial when processing data with large input feature dimensions (e.g. a lot of variables). PCA will provide us with the best linearly independent and diverse combinations of features that we may use to characterize our data in a variety of ways. K-means clustering will help us group similar variables. The principal components and cluster graphs created by this analysis will assist us in visualizing how the samples in our PCA relate to one another (which samples are similar and which are different) while also revealing how each variable contributes to each principal component. 
+
+**Multiple Regression:** 
+One of the most widely used statistical analysis methods is multiple regression. The goal is to estimate (or predict) a dependent variable, just like in bivariate regression. Many regression differs from ordinary bivariate regression in that it uses multiple explanatory variables (also known as independent variables) to estimate (predict) a dependent variable. Multiple regression is expressed in R as follows:
+
+lm(DepVariable ~ ExplanVariable1 + ExplanVariable2 + ExplanVariable…, data = DataSet)
+
+While multiple regression is usually used to predict the dependent variable, we'll be using it to figure out how changes in the independent factors are related to changes in the dependent variable by analyzing the results. We choose a regression model with statistically significant independent variables and analyze it to see "Which independent variables are the most important?"
+
+
+**Code:**
+We start with standardization, by sub-setting active individuals and active variables for the principal component analysis:
+
+Active individuals : Individuals that are used during the principal component analysis.
+
+Active variables: Variables that are used for the principal component analysis.
+
+The aim of this step is to standardize the range of the continuous initial variables so that each one of them contributes equally to the analysis.
+
+For our PCA, since ours is a small data set, our numeric variables are our active variables and all its individuals are active inviduals.
+
+```{r}
+#Creating a dataframe with active variables
+library(dplyr)
+WNBA.dt<-dplyr::select(WNBA,5,7:26)
+```
+
+The prcomp() function performs a principal components analysis on the given data matrix and returns the results as an object of class prcomp.
+```{r}
+#Compute PCA
+#install.packages("factoextra")
+library(factoextra)
+wnba_pca <- prcomp(WNBA.dt, scale. = TRUE)
+summary(wnba_pca)
+```
+
+The summary of the PCA shows that 21 Principle Components were created and it shows the SD and Proportion of Variance of each Principle Component.
+
+
+```{r}
+#Visualize the eigenvalues
+fviz_eig(wnba_pca, addlabels = TRUE, ylim = c(0, 50))
+```
+
+**Figure 2.1: Scree Plot visualizing Eigen Values**
+
+<BR>
+The above graph shows the percentage of variances explained by each principal component. We see that PC1 constitutes more than 34%, PC2 more than 11% while all other Principle Components constitute somewhere between 3-10%
+
+
+```{r}
+#Plotting Contribution of Variables
+fviz_contrib(wnba_pca, choice = "var", axes = 1:2)
+```
+
+**Figure 2.2: Contribution of Variables**
+
+<BR>
+A high contribution indicates a good representation of the variable on the principal component. In this case the variable is positioned close to the circumference of the correlation circle.
+
+A low contribution indicates that the variable is not perfectly represented by the PCs. In this case the variable is close to the center of the circle.
+The red dashed line on the graph above indicates the expected average contribution. If the contribution of the variables were uniform, the expected value would be 1/length(variables) = 1/10 = 10%. For a given component, a variable with a contribution larger than this cutoff could be considered as important in contributing to the component.
+
+We notice that points, totrb, efficiency, fgatt, minutes, fgmade, att3, defrb, made3, offrb contribute the most.
+
+<BR>
+To find similar variables, we start by classifying the variables into 3 groups using the kmeans clustering algorithm. Next, we use the clusters returned by the kmeans algorithm to color variables.
+
+```{r}
+# Create a grouping variable using kmeans
+# Create 3 groups of variables (centers = 3)
+set.seed(123)
+var <- get_pca_var(wnba_pca)
+res.km <- kmeans(var$coord, centers = 3, nstart = 25)
+grp <- as.factor(res.km$cluster)
+
+```
+
+
+```{r}
+# Color variables by groups
+fviz_pca_var(wnba_pca, col.var = grp, palette = c("#0073C2FF", "#EFC000FF", "#868686FF"), legend.title = "Cluster")
+```
+
+**Figure 2.3: Variables colored by Similar Clusters**
+
+<BR>
+We see that similar variables are grouped together and all variables are divided into 3 clusters using K-means Clustering.The Principle components and clusters generated by this analysis help understand how each variable is related to each other first before using Multiple Regression to understand how they impact efficiency. We see that the biggest cluster is cluster-1 colored blue. The most similar variables are efficiency, steal, att1, minutes, turnover, fgmade, fgatt, points, assist, att3, made3.
+
+**Multiple Regression:**
+
+We first perform Regression on all the variables of the dataset to understand which variables are highly significant.
+
+```{r}
+#Fitting Regression Model for all variables
+Reg1=lm(efficiency ~ ., WNBA.dt)
+
+#Summary of the Regression Model
+summary(Reg1)
+```
+
+The summary of the first regression model shows us the Pr(>|t|) values: This is the p-value that corresponds to the t-statistic. If this value is less than some alpha level (e.g. 0.05) than the predictor variable is said to be statistically significant. We use these significant variables to fit another regression model shown below, to understand which of these variables is most significant.
+
+```{r}
+#Fiting Second Regression Model with Significant Variables
+Reg2 = lm(efficiency ~  fgatt + att3+made3 + att1 +made1+ assist + offrb + defrb + steal + block+turnover, data=WNBA.dt)
+
+#Summary of Second Regression model
+summary(Reg2)
+
+#Importing necessary libraries to tabulate regression model coefficients
+library(dplyr)
+library(knitr)
+library(kableExtra)
+
+#Displaying coefficients of the Regression Model in Tabular form
+knitr::kable(Reg2$coefficients, "simple", 11,
+caption="Coefficients of the Regression Model")
+```
+
+<CENTER>Table 2.1. Coefficients of the Regression Model</CENTER>
+<BR>
+**Result and Interpretation:**
+
+The statistical output displays the coded coefficients. The coefficient value represents the mean change in the response given a one-unit increase in the predictor in this case, efficiency. 
+
+The variable made3 which gives number of 3-pointers that the player has made, has the coefficient with the largest absolute value, 3.94. This measure suggests that made3 is the most important independent variable in the regression model while all other variables in this model are highly significant.
+ 
+**Summary:**
+
+From our PCA and k-means clustering we can conclude that the most similar variables are efficiency, steal, att1, minutes, turnover, fgmade, fgatt, points, assist, att3, made3.
+
+From our Multiple Regression models, we can conclude that fgatt, att3, made3, att1, made1, assist, offrb, defrb, steal, block and turnover are the variables that have a significant impact on efficiency while made3 is the one which has most significant impact.
+
+**Business Question 2: Predict the efficiency of a player?**
+
+**Motivation:** 
+
+In basketball, efficiency is used to compare the overall value of different players. This can be used to form teams with different players in fantasy basketball league. Also companies are interested to invest on players with high efficiency. So in order to get an idea on which player to choose for the team or to invest on, it is good to predict their efficiency.
+
+**Justification:**
+
+We are using linear regression model to answer this question.
+
+Linear regression analysis is used to determine the relationship between one or more independent variables and a dependent variable, and it explains how these independent variables best predict the dependent variable's value. During the explanatory data analysis, it was found that certain variables had a linear relationship with the efficiency variable. Therefore, the best strategy to employ for predicting the efficiency of a player is linear regression.
+
+**Research and Development:**
+
+Our aim is to predict the efficiency of a player. As a part of finding solution to the first business question, it was found that the significant variables that had an impact on the efficiency variable are fgatt, att3, made3, att1, made1, assist, offrb, defrb, steal, block and turnover. Therefore, linear regression model was fitted to the dataset to predict the efficiency of a player.
+
+**Code:**
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+```{r}
+#Loading required libraries
+library(kableExtra)
+library(caret)
+library(ggplot2)
+library(gridExtra)
+library(glmnet)
+library(Metrics)
+library(car)
+```
+
+The dataset is divided into two - training set and testing set. 70% observations are included in the training set and 30% observations are included in the testing set.
+
+```{r}
+#Splitting data into training set and testing set
+set.seed(123)
+trainingIndex <- createDataPartition(WNBA$efficiency , p = 0.70, list =FALSE)
+trainingset <- WNBA[trainingIndex,]
+testingset <- WNBA[-trainingIndex,]
+
+#Validation of split
+dim_traintest <- data.frame(dim(trainingset), dim(testingset))
+row.names(dim_traintest) <- c("No. of Rows", "No. of Columns")
+colnames(dim_traintest) <- c("Training Set", "Testing Set")
+knitr::kable(dim_traintest,"simple",
+             caption="Table 3.1:Dimension of training set and testing set") %>%
+kable_styling(position = "center")
+
+```
+
+The training set consists of 2823 observations and testing set consists of 1209 observations.
+
+
+```{r}
+#Linear Regression Model
+model1 <-lm(efficiency ~  fgatt + att3+made3 + att1 +made1+ assist + offrb + defrb + steal + block+turnover, data = trainingset)
+summary(model1)
+```
+Here, the value of F-statistic is 1129 and the p-value is <2.2e-16, which is highly significant. This means that the predictor factors (fgatt, att3, made3, att1, made1, assist, offrb, defrb, steal, block, turnover) are related to the outcome variable (efficiency) in a substantial way. The RSE is 3.488, indicating that the observed output values differ by 3.488 units on average from the expected values. R-squared value is 0.8153, which means that 81.53% of values fit the model.
+
+```{r}
+#Training set Predictions
+train_probs <- predict(model1, newdata = trainingset, type = "response")
+
+#Diagnostic Plots
+par(mfrow = c(2,2))
+plot(model1)
+```
+
+**Figure 3.1: Regression Diagnostic Plots**
+
+The **Residual vs Fitted graph** shows the non linear residual patterns. This graph shows if the predictor and outcome variables have a non-linear relationship. A horizontal line, without distinct patterns is an indication for a linear relationship, which is good. Our plot has a horizontal line showing that it has a linear relationship
+
+The non-linear distribution of plots is shown by the usual **Q-Q plot**. Almost all of the points in our case fall roughly along this reference line up to a specific number, after which we can assume normality.
+
+The **Scale Location Plot** shows how the residuals are distributed among the predictor variables. The variability (variances) of the residual points rises with the value of the fitted outcome variable, indicating that the residuals errors have non-constant variances.
+
+ **Residuals vs Leverage Plot** Used to identify outliers and leverage points, that is extreme values that might influence the regression results when included or excluded from the analysis. 
+
+```{r}
+##Model Accuracy
+
+#rmse and mae value for training set
+paste0("RMSE: ",round(rmse(trainingset$efficiency, train_probs),2))
+paste0("MAE: ",round(MAE(trainingset$efficiency, train_probs),2))
+```
+The RMSE value for training set is 3.48. Lower the RMSE value, better is the performance of the model. Therefore, this shows a better fit model. Similarly, MAE is 2.59, which also represents a better fit model.
+```{r}
+#Testing set Predictions
+test_probs <- predict(model1, newdata = testingset, type = "response")
+
+##Model Accuracy
+
+#rmse and mae value for testing set
+paste0("RMSE: ",round(rmse(test_probs,testingset$efficiency),2))
+paste0("MAE: ",round(MAE(test_probs,testingset$efficiency),2))
+
+#Dataframe for rmse and mae values for training set and testing set
+rmse_mae_values <- data.frame(RMSE = c(round(rmse(trainingset$efficiency, train_probs),2),
+                              round(rmse(test_probs,testingset$efficiency),2)),
+                            MAE = c(round(MAE(trainingset$efficiency, train_probs),2),
+                            round(MAE(test_probs,testingset$efficiency),2)))
+row.names(rmse_mae_values) <- c("Training Set", "Testing Set")
+colnames(rmse_mae_values) <- c("RMSE","MAE")
+knitr::kable(rmse_mae_values,"simple",
+             caption="Table 3.2:RMSE and MAE values of training set and testing set") %>%
+kable_styling(position = "center")
+```
+
+**Result and Interpretation:**
+
+The RMSE value is 3.51 and MAE is 2.61 for the testing set, which are nearly the same compared to those of the training set. Therefore, there is no overfitting of model. Also, since the values of RMSE and MAE are less, we can conclude that this is a better fit model.
+
+```{r}
+#Maximum of testing set prediction probabilities
+max(test_probs)
+#Index of maximum value
+index <- match(max(test_probs),test_probs)
+index
+#Displaying the player details with maximum efficiency
+test_probs[index]
+WNBA[24,]
+```
+The player with highest efficiency is Maya Moore with a predicted efficiency of 47.12.
+
+**Summary:**
+
+The dataset was subjected to a linear regression analysis with the significant variables that affect the efficiency variable, in attempt to predict the efficiency of a player. The model was found to be best fitting with an RMSE value of 3.51 and MAE value of 2.61 for the testing set. Maya Moore was found to be the player with highest efficiency with a predicted efficiency of 47.12.
+
+**Business Question 3: Can we conclude if there is significant difference in means of Team Points of the best, average and worst performing teams?**
+
+**Motivation: **
+
+It is reasonable to assume that the best-performing team has a higher mean than the average and worst-performing teams in basketball, but this is not always the case(We determined the best, average, and worst performing teams based on their wins). In some cases, the difference in points between the winning and losing teams could be large, while in others, it could be as small as a single point.We wanted to check if there is a statistically significant difference in means of team points between best, Average and Worst performing teams.
+
+**Justification:**
+
+The one-way ANOVA compares the means between the groups you are interested in and determines whether any of those means are statistically significantly different from each other.Here we are using one way ANOVA to find out if there is significant difference in means of Team Points of the Best, Average and worst performing teams.
+
+**Research and Development:**
+
+After collecting data for one categorical independent variable (Team) and one quantitative dependent variable(Team Points), we will perform a one-way ANOVA. The independent variable is divided into three groups: Best, Average and worst performing teams. The dependent variable fluctuates depending on the magnitude of the independent variable, according to ANOVA.
+
+How did we decide which team was the best, average, or worst performing team? We produced a subset of data that only included wins and used a bar plot to see which team had the most, least, and average wins.
+
+To see if there is a difference in Team points, you assign groups to best, average, and worst performing Teams. Team name is your independent variable, and you gather data for PHO, WOS, and SEA to see whether there is a difference in mean team points.The null hypothesis (H0) of ANOVA is that there is no difference among group means. The alternate hypothesis (Ha) is that at least one group mean differs significantly from the other group mean.
+
+If we discover a significant difference in means between teams, we will use the Tukey test to determine the differences in mean team points across teams.
+
+**Code:**
+
+We will create a bar plot to see the number of wins for each team and based on results,we can select the Best, average and worst performing teams.
+
+```{r}
+##checking the total team names
+unique(WNBA$team)
+
+##creating a subset data with teams data with only wins data
+WNBAwins <- subset(WNBA,win=="1")
+
+##box plot to check the teams with maximum and least wins
+library(ggplot2)
+ggplot(WNBAwins, aes(x=reorder(team, team, function(x)-length(x)))) +
+geom_bar(fill='pink') + labs(x='Team')+labs(caption="Figure 4.1: Bar Plot for Number of wins by Teams ")+
+theme(plot.caption.position = "plot",plot.caption = element_text(hjust = 0.5))
+```
+
+**Results and Interpretation:**
+
+From the above plot, we can see the Team with Maximum number of wins as PHO(best) and Team with least number of wins as SEA(worst), we will also take another team which is near to median number of wins for this test which is WAS(average).
+
+We have created subset of data for each team using subset function as below:
+
+```{r}
+##creating subsets with team with maximum,least wins
+library(dplyr)
+best <- subset(WNBA,team=="PHO")
+avg <- subset(WNBA,team=="WAS")
+worst <- subset(WNBA,team=="SEA")
+```
+
+```{r}
+##State the Hypotheses and identify the claim
+##H0: μ1 = μ2 = μ3, There is no difference in means of team points for all teams.
+##H1: μ1 ≠ μ2 ≠ μ3, There is difference in means of team points for all teams.
+
+##set a Significance Level
+alpha <- 0.05
+
+##checking the number of entries for each subset created so we can create a data.frame
+bestc <- nrow(best)
+avgc <- nrow(avg)
+worstc <- nrow(worst)
+
+##creating data.frame
+best <- data.frame('result' = c(best$win),'team_pts'=c(best$team_pts),'Team'=rep('PHO',bestc),stringsAsFactors = FALSE)
+avg <- data.frame('result' = c(avg$win),'team_pts'=c(avg$team_pts),'Team'=rep('WAS',avgc),stringsAsFactors = FALSE)
+worst <- data.frame('result' = c(worst$win),'team_pts'=c(worst$team_pts),'Team'=rep('SEA',worstc),stringsAsFactors = FALSE)
+
+
+##combining data frames into one 
+Teampoints <- rbind(best,avg,worst)
+Teampoints$Team <- as.factor(Teampoints$Team)
+
+##box plot for the teams points to check the maximum,min and median and check for any outliers
+library("ggpubr")
+ggboxplot(Teampoints, x = "Team", y = "team_pts", 
+          color = "Team", palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+          order = c("PHO", "WAS", "SEA"),
+          ylab = "Team Points", xlab = "Team")+labs(caption="Figure 4.2: Box Plot for Team points")+
+theme(plot.caption.position = "plot",plot.caption = element_text(hjust = 0.5))
+
+
+##perform ANOVA test with team points 
+anova <- aov(team_pts~Team,data=Teampoints)
+
+
+##view summary of model and test statistics
+summary(anova)
+
+
+##view model summary and test value statistics
+a.summary <- summary(anova)
+a.summary
+```
+
+**Results and Interpretation:** 
+
+We can see that the overall p-value from the ANOVA table is <2e-16. Since this is less than .05, we have sufficient evidence to say that the mean values across each group are not equal. Thus, we can proceed to perform Tukey’s Test to determine exactly which group means are different.
+
+```{r}
+##Degree of freedom
+##k-1: between group variance - numerator
+df.numerator <- a.summary[[1]][1,"Df"]
+df.numerator
+
+
+##N -k: between group variance - denominator
+df.denominator <- a.summary[[1]][2,"Df"]
+df.denominator
+
+
+##extract the F test value from summary
+F.value <- a.summary[[1]][[1,"F value"]]
+F.value
+
+
+
+##extract the p test value from summary
+p.value <- a.summary[[1]][[1,"Pr(>F)"]]
+p.value
+
+
+##calculate the critical value
+qf(1-alpha,a.summary[[1]][1,1],a.summary[[1]][2,1])
+
+
+##Comparing p value with alpha to make decision
+ifelse(p.value > alpha,"Fail to reject null hypothesis","Reject Null Hypothesis")
+```
+
+**Results and Interpretation:** 
+
+Since P value is greater than alpha we Reject the Null Hypothesis and conclude that there is significant difference in means of team points between teams and one of the team means is different from others.
+
+```{r}
+##tukey test to check the difference in team points between teams
+TukeyHSD(anova)
+
+##plotting TukeyHSD() to visualize the confidence intervals
+plot(TukeyHSD(anova, conf.level=.95), las = 3)
+title(sub = "Figure 4.3: Differences in Team points for Teams",
+      cex.sub = 0.75, font.sub = 2, col.sub = "black"
+      )
+```
+
+**Summary:**
+
+Since P value is less than alpha, we Reject the Null Hypothesis and conclude that there is significant difference in means between all 3 groups. We have performed Tukey test to determine which of the means or pairs is different from other pairs by looking at the adjusted P value. We can see the difference in means in the diff column, the lower and upper represents lower and upper ends of 95 percent confidence interval. p adj is the adjusted p-value which is less than 0.05 for all teams which concludes that there is significant difference between all team means.
+
+<BR>
+
+## **Conclusion:**
+
+As a part of this analysis we solved the identified business questions for this data set. We have performed preliminary data analysis of the WNBA data set and understood the patterns and trends of players and teams in terms of their points and wins. We have provided justifications for the methods which answers the business questions. 
+
+From our PCA and k-means clustering we can conclude that the most similar variables are efficiency, steal, att1, minutes, turnover, fgmade, fgatt, points, assist, att3, made3. From our Multiple Regression models, we can conclude that fgatt, att3, made3, att1, made1, assist, offrb, defrb, steal, block and turnover are the variables that have a significant impact on efficiency while made3 is the one which has most significant impact.
+
+The dataset was subjected to a linear regression analysis using the significant variables that affect the outcome(efficiency) variable, in attempt to predict the efficiency of a player. The model was found to be best fitting with an RMSE value of 3.51 and MAE value of 2.61 for the testing set. Maya Moore was found to be the player with highest efficiency with a predicted efficiency of 47.12.
+
+Using One Way ANOVA, We conclude that there is significant difference in means of team points between teams. We have performed Tukey test to determine which of the means or pairs is different from other pairs by looking at the adjusted P value. 
+
+**Solving these business questions** was important to help Team management come to a conclusion to decide whether to buy a player or not by predicting efficiency of players. It also helps to understand the difference in performance between best and worst performing teams.
+
+<BR>
+
+## **References:**
+
+princomp, P. (2017). Principal Component Analysis in R: prcomp vs princomp - Articles - STHDA. Retrieved 6 February 2022, from http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/118-principal-component-analysis-in-r-prcomp-vs-princomp/
+
+PCA clearly explained — How, when, why to use it and feature importance: A guide in Python. (2021). Retrieved 6 February 2022, from https://towardsdatascience.com/pca-clearly-explained-how-when-why-to-use-it-and-feature-importance-a-guide-in-python-7c274582c37e
+
+About Linear Regression | IBM. (2022). Retrieved 15 February 2022, from https://www.ibm.com/topics/linear-regression
+
+One-way ANOVA - An introduction to when you should run this test and the test hypothesis | Laerd Statistics. (2022). Retrieved 6 February 2022, from https://statistics.laerd.com/statistical-guides/one-way-anova-statistical-guide.php
+
+Zhu, H. (2022). Create Awesome HTML Table with knitr::kable and kableExtra. Retrieved 12 February 2022, from https://haozhu233.github.io/kableExtra/awesome_table_in_html.html
+
+How to Perform Tukey HSD Test in R | R-bloggers. (2021). Retrieved 12 February 2022, from https://www.r-bloggers.com/2021/08/how-to-perform-tukey-hsd-test-in-r/
+
+Add titles to a plot in R software - Easy Guides - Wiki - STHDA. (2022). Retrieved 12 February 2022, from http://www.sthda.com/english/wiki/add-titles-to-a-plot-in-r-software
+
+Zach, V. (2020). How to Perform Tukey's Test in R - Statology. Retrieved 12 February 2022, from https://www.statology.org/tukey-test-r/
+
+Base, K., & ANOVA, A. (2020). An introduction to the one-way ANOVA. Retrieved 12 February 2022, from https://www.scribbr.com/statistics/one-way-anova/
+
+Essentials, P.
+Essentials, P. (2017). PCA - Principal Component Analysis Essentials - Articles - STHDA. Retrieved 12 February 2022, from http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/112-pca-principal-component-analysis-essentials/
+
+Editor, M.
+Editor, M. (2022). How to Identify the Most Important Predictor Variables in Regression Models. Retrieved 12 February 2022, from https://blog.minitab.com/en/adventures-in-statistics-2/how-to-identify-the-most-important-predictor-variables-in-regression-models
+
+Identifying the Most Important Independent Variables in Regression Models - Statistics By Jim
+Identifying the Most Important Independent Variables in Regression Models - Statistics By Jim. (2022). Retrieved 12 February 2022, from https://statisticsbyjim.com/regression/identifying-important-independent-variables/#:~:text=Identifying%20the%20Most%20Important%20Independent%20Variables%20in%20Regression%20Models,-By%20Jim%20Frost&text=You've%20settled%
